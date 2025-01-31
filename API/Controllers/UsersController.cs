@@ -15,7 +15,7 @@ public class UsersController(DataContext context) : BaseApiController
   {
     var users = await context.Users.ToListAsync();
 
-    return users;
+    return users ?? [];
   }
 
   [Authorize]
