@@ -1,86 +1,96 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using API.DTOs;
+﻿using API.DTOs;
+using APITests.Factories;
+using APITests.Helpers;
+using System.Net.Http.Json;
+using System.Net;
 
 namespace API.Controllers.Tests
 {
   [TestClass()]
-  public class AccountControllerTests
+  public class AccountControllerTests : DbTest
   {
-    private static DatabaseFixture? _databaseFixture;
+    private static HttpClient? _client;
 
     [ClassInitialize]
-    public static void ClassInitialize(TestContext context)
+    public static void Initialize(TestContext context)
     {
-      _databaseFixture = new DatabaseFixture();
-    }
-
-    [ClassCleanup]
-    public static void ClassCleanup()
-    {
-      Assert.IsNotNull(_databaseFixture);
-      _databaseFixture.Dispose();
-    }
-
-     [TestMethod()]
-    public void LoginSuccessTest()
-    {
-      // Arrange
-      Assert.IsNotNull(_databaseFixture);
-      using var scope = _databaseFixture.ServiceProvider.CreateScope();
-      var controller = scope.ServiceProvider.GetRequiredService<AccountController>();
-      var loginDto = new LoginDto
-      {
-        Username = "test",
-        Password = "password"
-      };
-
-      // Act
-      var result = controller.Login(loginDto);
-
-      // Assert
-      Assert.IsNotNull(result.Result.Value);
-    }
-    [TestMethod()]
-    public void LoginFailureTest()
-    {
-      // Arrange
-      Assert.IsNotNull(_databaseFixture);
-      using var scope = _databaseFixture.ServiceProvider.CreateScope();
-      var controller = scope.ServiceProvider.GetRequiredService<AccountController>();
-      var loginDto = new LoginDto
-      {
-        Username = "falseuser",
-        Password = "password"
-      };
-
-      // Act
-      var result = controller.Login(loginDto);
-
-      // Assert
-      Assert.IsNull(result.Result.Value);
+      var factory = new CustomWebApplicationFactory();
+      _client = factory.CreateClient();
     }
 
     [TestMethod()]
-    public void RegisterTest()
+    public async Task LoginSuccessTest()
     {
       // Arrange
-      Assert.IsNotNull(_databaseFixture);
-      using var scope = _databaseFixture.ServiceProvider.CreateScope();
-      var controller = scope.ServiceProvider.GetRequiredService<AccountController>();
-      var registerDto = new RegisterDto
-      {
-        Username = "registerUser",
-        Password = "password"
-      };
+      var client = _client!;
 
       // Act
-      var result = controller.Register(registerDto);
+      var result = await client.PostAsJsonAsync("api/account/login", new LoginDto
+      {
+        Username = "finley",
+        Password = "pa$$w0rd"
+      });
 
       // Assert
-      Assert.IsNotNull(result.Result.Value);
-      Assert.AreEqual(registerDto.Username.ToLower(), result.Result.Value.UserName);
-      Assert.IsTrue(result.Result.Value.PasswordHash.Length > 0);
-      Assert.IsTrue(result.Result.Value.PasswordSalt.Length > 0);
+      Assert.IsTrue(result.IsSuccessStatusCode);
+      var responseContent = await result.Content.ReadFromJsonAsync<UserDto>();
+      Assert.IsNotNull(responseContent);
+      Assert.AreEqual("finley", responseContent.Username);
+      Assert.IsTrue(responseContent.Token.Length > 0);
+    }
+    [TestMethod()]
+    public async Task LoginFailureTest()
+    {
+      // Arrange
+      var client = _client!;
+
+      // Act
+      var result = await client.PostAsJsonAsync("api/account/login", new LoginDto
+      {
+        Username = "NOPE",
+        Password = "wrong"
+      });
+
+      // Assert
+      Assert.IsFalse(result.IsSuccessStatusCode);
+      Assert.IsTrue(result.StatusCode == HttpStatusCode.Unauthorized);
+    }
+
+    [TestMethod()]
+    public async Task RegisterSuccessTest()
+    {
+      // Arrange
+      var client = _client!;
+
+      // Act
+      var result = await client.PostAsJsonAsync("api/account/register", new RegisterDto
+      {
+        Username = "newuser",
+        Password = "pa$$w0rd"
+      });
+
+
+      // Assert
+      Assert.IsTrue(result.IsSuccessStatusCode);
+    }
+
+    [TestMethod()]
+    public async Task RegisterFailureTest()
+    {
+      // Arrange
+      var client = _client!;
+
+      // Act
+      var result = await client.PostAsJsonAsync("api/account/register", new RegisterDto
+      {
+        Username = "finley",
+        Password = "pa$$w0rd"
+      });
+
+
+      // Assert
+      Assert.IsFalse(result.IsSuccessStatusCode);
+      Assert.IsTrue(result.StatusCode == HttpStatusCode.BadRequest);
     }
   }
 }
