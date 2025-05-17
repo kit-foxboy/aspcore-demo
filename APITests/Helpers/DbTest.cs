@@ -7,15 +7,17 @@ namespace APITests.Helpers;
 
 public class DbTest
 {
-  [TestInitialize]
-  public async Task InitializeAsync()
+  protected static DataContext? _context;
+
+  [ClassInitialize]
+  public static async Task InitializeAsync(TestContext testContext)
   {
     var factory = new CustomWebApplicationFactory();
-    var context = factory.Services.GetRequiredService<DataContext>();
+    _context = factory.Services.GetRequiredService<DataContext>();
 
-    await context.Database.EnsureDeletedAsync();
-    await context.Database.EnsureCreatedAsync();
+    await _context.Database.EnsureDeletedAsync();
+    await _context.Database.EnsureCreatedAsync();
 
-    await Seed.SeedUsers(context);
+    await Seed.SeedUsers(_context);
   }
 }
