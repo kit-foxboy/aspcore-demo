@@ -13,6 +13,20 @@ public class AutoMapperProfiles : Profile
     CreateMap<AppUser, MemberDto>()
       .ForMember(d => d.Age, o => o.MapFrom(s => s.DateOfBirth.CalculateAge()));
     CreateMap<Photo, PhotoDto>();
-    CreateMap<MemberUpdateDto, AppUser>();
+
+    // TODO: Remove the ignore mappings when update forms are implemented
+    CreateMap<MemberUpdateDto, AppUser>()
+      .ForMember(d => d.Id, o => o.Ignore())
+      .ForMember(d => d.UserName, o => o.Ignore())
+      .ForMember(d => d.PasswordHash, o => o.Ignore())
+      .ForMember(d => d.PasswordSalt, o => o.Ignore())
+      .ForMember(d => d.DateOfBirth, o => o.Ignore())
+      .ForMember(d => d.KnownAs, o => o.Ignore())
+      .ForMember(d => d.Created, o => o.Ignore())
+      .ForMember(d => d.LastActive, o => o.Ignore())
+      .ForMember(d => d.Gender, o => o.Ignore())
+      .ForMember(d => d.IsPredator, o => o.Ignore())
+      .ForMember(d => d.Bio, o => o.Ignore())
+      .ForMember(d => d.Photos, o => o.Ignore());
   }
 }
